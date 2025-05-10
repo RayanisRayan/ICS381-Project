@@ -15,6 +15,31 @@ interface Node {
   lastAssigned: Position;
 }
 
+// Global metrics to track algorithm performance
+export let metrics = {
+  nodesExpanded: 0,
+  childrenGenerated: 0,
+  maxDepth: 0,
+  iterations: 0,
+  reset: function() {
+    this.nodesExpanded = 0;
+    this.childrenGenerated = 0;
+    this.maxDepth = 0;
+    this.iterations = 0;
+  }
+};
+
+// Helper function to calculate depth of a node in the search tree
+function getDepth(node: Node): number {
+  let depth = 0;
+  let current = node;
+  while (current.parent) {
+    depth++;
+    current = current.parent;
+  }
+  return depth;
+}
+
 export function initiate(initialState: { state: (number | null)[][] }) {
   const { domain, fixed } = inititationHelper(initialState);
   const problem = { state: initialState.state, domain: domain, fixed: fixed };
@@ -186,7 +211,7 @@ export function updateDomain(
   return newDomain;
 }
 
-// FIXED GETCHILDREN FUNCTION
+// FIXED GETCHILDREN FUNCTION with metrics
 export function getChildren(parent: Node): Node[] {
   const { row, col } = parent.lastAssigned;
   
@@ -198,6 +223,10 @@ export function getChildren(parent: Node): Node[] {
   
   // Initialize an array to store the child nodes
   const children: Node[] = [];
+  
+  // Track depth for metrics
+  const currentDepth = getDepth(parent);
+  metrics.maxDepth = Math.max(metrics.maxDepth, currentDepth + 1);
   
   // Iterate through each action
   for (let i = 0; i < actions.length; i++) {
@@ -240,11 +269,14 @@ export function getChildren(parent: Node): Node[] {
     children.push(child);
   }
   
+  // Update metrics
+  metrics.childrenGenerated += children.length;
+  
   // Return the list of child nodes
   return children;
 }
 
-// FIXED GETCHILDREN FORWARDING FUNCTION
+// FIXED GETCHILDREN FORWARDING FUNCTION with metrics
 export function getChildren_forwarding(parent: Node): Node[] {
   const { row, col } = parent.lastAssigned;
   
@@ -256,6 +288,10 @@ export function getChildren_forwarding(parent: Node): Node[] {
   
   // Initialize an array to store the child nodes
   const children: Node[] = [];
+  
+  // Track depth for metrics
+  const currentDepth = getDepth(parent);
+  metrics.maxDepth = Math.max(metrics.maxDepth, currentDepth + 1);
   
   // Iterate through each action
   for (let i = 0; i < actions.length; i++) {
@@ -314,12 +350,18 @@ export function getChildren_forwarding(parent: Node): Node[] {
     }
   }
   
+  // Update metrics
+  metrics.childrenGenerated += children.length;
+  
   // Return the list of child nodes
   return children;
 }
 
-// FIXED BACKTRACK FUNCTION
+// FIXED BACKTRACK FUNCTION with metrics
 export function backtack(state: (number | null)[][]) {
+  // Reset metrics
+  metrics.reset();
+  
   let problem = initiate({ state });
   
   // Find the first empty cell to start with
@@ -339,6 +381,10 @@ export function backtack(state: (number | null)[][]) {
   while (fringe.length > 0) {
     let current = fringe.pop();
     if (!current) return null;
+    
+    // Track expanded nodes
+    metrics.nodesExpanded++;
+    
     if (consistent(current.problem)) {
       if (isgoal(current.problem)) return current;
       let children = getChildren(current);
@@ -348,8 +394,11 @@ export function backtack(state: (number | null)[][]) {
   return null;
 }
 
-// FIXED BACKTRACK FORWARD FUNCTION
+// FIXED BACKTRACK FORWARD FUNCTION with metrics
 export function backtack_forward(state: (number | null)[][]) {
+  // Reset metrics
+  metrics.reset();
+  
   let problem = initiate({ state });
   
   // Find the first empty cell to start with
@@ -369,6 +418,10 @@ export function backtack_forward(state: (number | null)[][]) {
   while (fringe.length > 0) {
     let current = fringe.pop();
     if (!current) return null;
+    
+    // Track expanded nodes
+    metrics.nodesExpanded++;
+    
     if (consistent(current.problem)) {
       if (isgoal(current.problem)) return current;
       let children = getChildren_forwarding(current);
@@ -422,11 +475,15 @@ export function getLCV(problem: SudokuProblem, pos: Position): number[] {
   return constraints.sort((a, b) => a.count - b.count).map(x => x.value);
 }
 
-// FIXED GETCHILDREN_MRV_LCV FUNCTION
+// FIXED GETCHILDREN_MRV_LCV FUNCTION with metrics
 export function getChildren_MRV_LCV(parent: Node): Node[] {
   // Instead of using the lastAssigned position directly, we find the MRV position
   const nextPosition = getMRVPosition(parent.problem);
   if (!nextPosition) return [];
+  
+  // Track depth for metrics
+  const currentDepth = getDepth(parent);
+  metrics.maxDepth = Math.max(metrics.maxDepth, currentDepth + 1);
   
   // Get LCV-ordered values for this position
   const actions = getLCV(parent.problem, nextPosition);
@@ -467,11 +524,17 @@ export function getChildren_MRV_LCV(parent: Node): Node[] {
     }
   }
   
+  // Update metrics
+  metrics.childrenGenerated += children.length;
+  
   return children;
 }
 
-// FIXED BACKTRACK_MRV_LCV FUNCTION
+// FIXED BACKTRACK_MRV_LCV FUNCTION with metrics
 export function backtrack_MRV_LCV(state: (number | null)[][]) {
+  // Reset metrics
+  metrics.reset();
+  
   let problem = initiate({ state });
   
   // Find the first MRV position to start with
@@ -491,6 +554,10 @@ export function backtrack_MRV_LCV(state: (number | null)[][]) {
   while (fringe.length > 0) {
     let current = fringe.pop();
     if (!current) return null;
+    
+    // Track expanded nodes
+    metrics.nodesExpanded++;
+    
     if (consistent(current.problem)) {
       if (isgoal(current.problem)) return current;
       let children = getChildren_MRV_LCV(current);
@@ -500,7 +567,7 @@ export function backtrack_MRV_LCV(state: (number | null)[][]) {
   return null;
 }
 
-// Simulated Annealing
+// Simulated Annealing with metrics
 
 // Random complete assignment - fills each 3x3 block with missing numbers
 export function randomCompleteAssignment(state: (number | null)[][], fixed: boolean[][]): number[][] {
@@ -577,12 +644,15 @@ export function countConflicts(state: number[][]): number {
   return conflicts;
 }
 
-// Simulated Annealing
+// Simulated Annealing with metrics
 export function simulatedAnnealing(
   state: (number | null)[][],
   fixed: boolean[][],
   maxSteps = 100000
 ): number[][] | null {
+  // Reset metrics
+  metrics.reset();
+  
   // Create a complete random assignment
   let current = randomCompleteAssignment(state, fixed);
   let currentConflicts = countConflicts(current);
@@ -597,6 +667,9 @@ export function simulatedAnnealing(
   
   // Main simulated annealing loop
   for (let step = 0; step < maxSteps && currentConflicts > 0; step++) {
+    // Update iteration count
+    metrics.iterations++;
+    
     // Pick a random subgrid
     const blockRow = Math.floor(Math.random() * 3);
     const blockCol = Math.floor(Math.random() * 3);
@@ -638,6 +711,11 @@ export function simulatedAnnealing(
     // Cool down the temperature
     T *= alpha;
     if (T < T_min) T = T_min;
+    
+    // If solution found, return early
+    if (currentConflicts === 0) {
+      return current;
+    }
   }
   
   // Return the solution if we found one, otherwise null

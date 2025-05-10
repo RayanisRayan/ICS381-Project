@@ -4,6 +4,7 @@ import {
   backtack_forward,
   backtrack_MRV_LCV,
   simulatedAnnealing,
+  metrics
 } from "./search";
 
 // Helper to create empty board
@@ -12,7 +13,10 @@ const emptyBoard = () => Array.from({ length: 9 }, () => Array(9).fill(null));
 // Define a type for stats
 type Stats = {
   time: string;
-  // Add more fields if you want to track more stats
+  nodesExpanded: number;
+  childrenGenerated: number;
+  maxDepth: number;
+  iterations: number;
 };
 
 // Helper function to find the first empty cell
@@ -49,7 +53,13 @@ export default function SudokuSolver() {
     if (!findFirstEmpty(board)) {
       setMessage("Board is already complete.");
       setResult(board);
-      setStats({ time: "0 ms" });
+      setStats({ 
+        time: "0 ms", 
+        nodesExpanded: 0, 
+        childrenGenerated: 0, 
+        maxDepth: 0, 
+        iterations: 0 
+      });
       return;
     }
     
@@ -78,6 +88,10 @@ export default function SudokuSolver() {
     const t1 = performance.now();
     const info: Stats = {
       time: (t1 - t0).toFixed(2) + " ms",
+      nodesExpanded: metrics.nodesExpanded,
+      childrenGenerated: metrics.childrenGenerated,
+      maxDepth: metrics.maxDepth,
+      iterations: metrics.iterations
     };
     
     setResult(solution);
@@ -203,7 +217,31 @@ export default function SudokuSolver() {
         </div>
       )}
       
-      {stats && <div style={{ textAlign: "center", marginBottom: "15px" }}>Time: {stats.time}</div>}
+      {stats && (
+        <div style={{ 
+          textAlign: "center", 
+          marginBottom: "15px",
+          padding: "10px",
+          backgroundColor: "#f8f9fa",
+          borderRadius: "4px",
+          border: "1px solid #dee2e6"
+        }}>
+          <div style={{ fontWeight: "bold", marginBottom: "5px" }}>Performance Metrics:</div>
+          <div>Time: {stats.time}</div>
+          
+          {(algorithm === "backtracking" || algorithm === "forward" || algorithm === "mrv_lcv") && (
+            <>
+              <div>Nodes Expanded: {stats.nodesExpanded}</div>
+              <div>Children Generated: {stats.childrenGenerated}</div>
+              <div>Maximum Depth: {stats.maxDepth}</div>
+            </>
+          )}
+          
+          {algorithm === "annealing" && (
+            <div>Iterations: {stats.iterations}</div>
+          )}
+        </div>
+      )}
       
       {result && (
         <div>
