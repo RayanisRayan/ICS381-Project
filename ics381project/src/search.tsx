@@ -570,7 +570,7 @@ export function backtrack_MRV_LCV(state: (number | null)[][]) {
 // Simulated Annealing with metrics
 
 // Random complete assignment - fills each 3x3 block with missing numbers
-export function randomCompleteAssignment(state: (number | null)[][], fixed: boolean[][]): number[][] {
+export function randomCompleteAssignment(state: (number | null)[][], _: boolean[][]): number[][] {
   // Fill all empty cells randomly, respecting fixed cells
   const newState = state.map(row => [...row]) as number[][];
   

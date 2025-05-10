@@ -1,4 +1,3 @@
-import React from "react";
 import SudokuSolver from "./SudokuSolver";
 import "./App.css";
 
